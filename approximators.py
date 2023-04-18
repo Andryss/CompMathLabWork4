@@ -26,7 +26,7 @@ class VarianceCalculator:
         return math.sqrt(val)
 
     @staticmethod
-    def deviation_measure_and_standard_deviation(table_function: TableFunction,
+    def squared_deviation_and_standard_deviation(table_function: TableFunction,
                                                  approximated_function: Function) -> [float, float]:
         s = VarianceCalculator.squared_deviation(table_function, approximated_function)
         omega = VarianceCalculator.standard_deviation_from_squared_deviation(s, len(table_function.table()))
@@ -194,10 +194,3 @@ class LogarithmicApproximator(Approximator):
         a, b = LogarithmicApproximatorCoefficientResolver.resolve(func)
         return Function(f'{a} * ln(x) + {b}',
                         lambda x: a * math.log(x) + b)
-
-
-if __name__ == "__main__":
-    table_func = TableFunction(pd.DataFrame({'x': [1, 2, 3, 4], 'y': [1, 4, 9, 16]}))
-    # TODO: add approximator assertions
-    approximator = ExponentialApproximator()
-    print(approximator.approximate(table_func))
