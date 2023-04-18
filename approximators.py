@@ -7,27 +7,29 @@ from modified_gauss import *
 class VarianceCalculator:
 
     @staticmethod   # мера отклонения
-    def deviation_measure(table_function: TableFunction, approximated_function: Function) -> float:
-        deviation_measure = 0
+    def squared_deviation(table_function: TableFunction, approximated_function: Function) -> float:
+        squared_deviation = 0
         t = table_function.table().values
         for i in range(len(t)):
-            deviation_measure += (approximated_function.at(t[i, 0]) - t[i, 1]) ** 2
-        return deviation_measure
+            squared_deviation += (approximated_function.at(t[i, 0]) - t[i, 1]) ** 2
+        return squared_deviation
 
     @staticmethod   # среднеквадратическое отклонение
     def standard_deviation(table_function: TableFunction, approximated_function: Function) -> float:
-        s = VarianceCalculator.deviation_measure(table_function, approximated_function)
-        return VarianceCalculator.standard_deviation_from_deviation_measure(s, len(table_function.table()))
+        s = VarianceCalculator.squared_deviation(table_function, approximated_function)
+        return VarianceCalculator.standard_deviation_from_squared_deviation(s, len(table_function.table()))
 
     @staticmethod
-    def standard_deviation_from_deviation_measure(s: float, n: int) -> float:
-        return math.sqrt(s / n)
+    def standard_deviation_from_squared_deviation(s: float, n: int) -> float:
+        val = s / n
+        assert val > 0, "Can't calculate standard deviation"
+        return math.sqrt(val)
 
     @staticmethod
     def deviation_measure_and_standard_deviation(table_function: TableFunction,
                                                  approximated_function: Function) -> [float, float]:
-        s = VarianceCalculator.deviation_measure(table_function, approximated_function)
-        omega = VarianceCalculator.standard_deviation_from_deviation_measure(s, len(table_function.table()))
+        s = VarianceCalculator.squared_deviation(table_function, approximated_function)
+        omega = VarianceCalculator.standard_deviation_from_squared_deviation(s, len(table_function.table()))
         return [s, omega]
 
 
@@ -40,15 +42,16 @@ class Approximator:
 
 class LinearApproximatorCoefficientResolver:
 
+    # noinspection DuplicatedCode
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
         x, y = func.x_values(), func.y_values()
-        n, sx, sy = len(func.table()), x.sum(), y.sum()
+        n, sx1, sy1 = len(func.table()), x.sum(), y.sum()
         x, y = x * func.x_values(), y * func.x_values()
-        sxx, sxy = x.sum(), y.sum()
+        sx2, sx1y1 = x.sum(), y.sum()
         system = np.array([
-            [n,   sx,   sy],
-            [sx,  sxx,  sxy]
+            [n,    sx1,  sy1],
+            [sx1,  sx2,  sx1y1]
         ])
         result = calculate_gauss_from_parameters(system)
         return result.answer[::-1]
@@ -65,20 +68,21 @@ class LinearApproximator(Approximator):
 
 class SquareApproximatorCoefficientResolver:
 
+    # noinspection DuplicatedCode
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
         x, y = func.x_values(), func.y_values()
-        n, sx, sy = len(func.table()), x.sum(), y.sum()
+        n, sx1, sy1 = len(func.table()), x.sum(), y.sum()
         x, y = x * func.x_values(), y * func.x_values()
-        sxx, sxy = x.sum(), y.sum()
+        sx2, sx1y1 = x.sum(), y.sum()
         x, y = x * func.x_values(), y * func.x_values()
-        sxxx, sxxy = x.sum(), y.sum()
+        sx3, sx2y1 = x.sum(), y.sum()
         x = x * func.x_values()
-        sxxxx = x.sum()
+        sx4 = x.sum()
         system = np.array([
-            [n,    sx,    sxx,    sy],
-            [sx,   sxx,   sxxx,   sxy],
-            [sxx,  sxxx,  sxxxx,  sxxy]
+            [n,    sx1,  sx2,  sy1],
+            [sx1,  sx2,  sx3,  sx1y1],
+            [sx2,  sx3,  sx4,  sx2y1]
         ])
         result = calculate_gauss_from_parameters(system)
         return result.answer[::-1]
@@ -95,25 +99,26 @@ class SquarePolynomialApproximator(Approximator):
 
 class CubeApproximatorCoefficientResolver:
 
+    # noinspection DuplicatedCode
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
         x, y = func.x_values(), func.y_values()
-        n, sx, sy = len(func.table()), x.sum(), y.sum()
+        n, sx1, sy1 = len(func.table()), x.sum(), y.sum()
         x, y = x * func.x_values(), y * func.x_values()
-        sxx, sxy = x.sum(), y.sum()
+        sx2, sx1y1 = x.sum(), y.sum()
         x, y = x * func.x_values(), y * func.x_values()
-        sxxx, sxxy = x.sum(), y.sum()
+        sx3, sx2y1 = x.sum(), y.sum()
         x, y = x * func.x_values(), y * func.x_values()
-        sxxxx, sxxxy = x.sum(), y.sum()
+        sx4, sx3y1 = x.sum(), y.sum()
         x, y = x * func.x_values(), y * func.x_values()
-        sxxxxx, sxxxxy = x.sum(), y.sum()
+        sx5, sx4y1 = x.sum(), y.sum()
         x = x * func.x_values()
-        sxxxxxx = x.sum()
+        sx6 = x.sum()
         system = np.array([
-            [n,     sx,     sxx,     sxxx,     sy],
-            [sx,    sxx,    sxxx,    sxxxx,    sxy],
-            [sxx,   sxxx,   sxxxx,   sxxxxx,   sxxy],
-            [sxxx,  sxxxx,  sxxxxx,  sxxxxxx,  sxxxy]
+            [n,    sx1,  sx2,  sx3,  sy1],
+            [sx1,  sx2,  sx3,  sx4,  sx1y1],
+            [sx2,  sx3,  sx4,  sx5,  sx2y1],
+            [sx3,  sx4,  sx5,  sx6,  sx3y1]
         ])
         result = calculate_gauss_from_parameters(system)
         return result.answer[::-1]
@@ -132,6 +137,7 @@ class PowerApproximatorCoefficientResolver:
 
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
+        assert all(func.table() > 0), "Can't resolve coefficients (both x and y must be positive)"
         new_table = pd.DataFrame()
         new_table['x'] = func.table()['x'].apply(lambda x: math.log(x))
         new_table['y'] = func.table()['y'].apply(lambda y: math.log(y))
@@ -152,6 +158,7 @@ class ExponentialApproximatorCoefficientResolver:
 
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
+        assert all(func.table()['y'] > 0), "Can't resolve coefficients (y must be positive)"
         new_table = pd.DataFrame()
         new_table['x'] = func.table()['x']
         new_table['y'] = func.table()['y'].apply(lambda y: math.log(y))
@@ -164,7 +171,7 @@ class ExponentialApproximator(Approximator):
 
     def approximate(self, func: TableFunction) -> Function:
         a, b = ExponentialApproximatorCoefficientResolver.resolve(func)
-        return Function(f'{a} * e^(b * x)',
+        return Function(f'{a} * e^({b} * x)',
                         lambda x: a * math.exp(b * x))
 
 
@@ -172,6 +179,7 @@ class LogarithmicApproximatorCoefficientResolver:
 
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
+        assert all(func.table()['x'] > 0), "Can't resolve coefficients (x must be positive)"
         new_table = pd.DataFrame()
         new_table['x'] = func.table()['x'].apply(lambda x: math.log(x))
         new_table['y'] = func.table()['y']
