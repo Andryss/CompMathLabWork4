@@ -40,19 +40,29 @@ class Approximator:
         raise Exception("method isn't overriden")
 
 
+class _PolynomialSystemGenerator:
+
+    @staticmethod
+    def generate(table_function: TableFunction, n: int) -> np.ndarray:
+        system = [[] for _ in range(n)]
+        x_vals = table_function.x_values()
+        x = pd.Series([1] * len(x_vals))
+        for bottom_row in range(-n + 1, n):
+            for row in range(max(0, bottom_row), min(n, bottom_row + n)):   # window iteration
+                system[row].append(x.sum())
+            x *= x_vals
+        y = table_function.y_values()
+        for row in range(n):
+            system[row].append(y.sum())
+            y *= x_vals
+        return np.array(system)
+
+
 class LinearApproximatorCoefficientResolver:
 
-    # noinspection DuplicatedCode
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
-        x, y = func.x_values(), func.y_values()
-        n, sx1, sy1 = len(func.table()), x.sum(), y.sum()
-        x, y = x * func.x_values(), y * func.x_values()
-        sx2, sx1y1 = x.sum(), y.sum()
-        system = np.array([
-            [n,    sx1,  sy1],
-            [sx1,  sx2,  sx1y1]
-        ])
+        system = _PolynomialSystemGenerator.generate(func, 2)
         result = calculate_gauss_from_parameters(system)
         return result.answer[::-1]
 
@@ -68,22 +78,9 @@ class LinearApproximator(Approximator):
 
 class SquareApproximatorCoefficientResolver:
 
-    # noinspection DuplicatedCode
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
-        x, y = func.x_values(), func.y_values()
-        n, sx1, sy1 = len(func.table()), x.sum(), y.sum()
-        x, y = x * func.x_values(), y * func.x_values()
-        sx2, sx1y1 = x.sum(), y.sum()
-        x, y = x * func.x_values(), y * func.x_values()
-        sx3, sx2y1 = x.sum(), y.sum()
-        x = x * func.x_values()
-        sx4 = x.sum()
-        system = np.array([
-            [n,    sx1,  sx2,  sy1],
-            [sx1,  sx2,  sx3,  sx1y1],
-            [sx2,  sx3,  sx4,  sx2y1]
-        ])
+        system = _PolynomialSystemGenerator.generate(func, 3)
         result = calculate_gauss_from_parameters(system)
         return result.answer[::-1]
 
@@ -99,27 +96,9 @@ class SquarePolynomialApproximator(Approximator):
 
 class CubeApproximatorCoefficientResolver:
 
-    # noinspection DuplicatedCode
     @staticmethod
     def resolve(func: TableFunction) -> [float, float]:
-        x, y = func.x_values(), func.y_values()
-        n, sx1, sy1 = len(func.table()), x.sum(), y.sum()
-        x, y = x * func.x_values(), y * func.x_values()
-        sx2, sx1y1 = x.sum(), y.sum()
-        x, y = x * func.x_values(), y * func.x_values()
-        sx3, sx2y1 = x.sum(), y.sum()
-        x, y = x * func.x_values(), y * func.x_values()
-        sx4, sx3y1 = x.sum(), y.sum()
-        x, y = x * func.x_values(), y * func.x_values()
-        sx5, sx4y1 = x.sum(), y.sum()
-        x = x * func.x_values()
-        sx6 = x.sum()
-        system = np.array([
-            [n,    sx1,  sx2,  sx3,  sy1],
-            [sx1,  sx2,  sx3,  sx4,  sx1y1],
-            [sx2,  sx3,  sx4,  sx5,  sx2y1],
-            [sx3,  sx4,  sx5,  sx6,  sx3y1]
-        ])
+        system = _PolynomialSystemGenerator.generate(func, 4)
         result = calculate_gauss_from_parameters(system)
         return result.answer[::-1]
 
