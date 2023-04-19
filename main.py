@@ -61,12 +61,7 @@ def read_table_function() -> TableFunction:
 
 
 def print_result_entity(result_entity: ApproximationResultEntity):
-    print(f"\n{result_entity.approximator.name}:")
-    if isinstance(result_entity, ApproximationResultEntityError):
-        print(f"error: {result_entity.error.__str__()}")
-    else:
-        print(f"function: {result_entity.approximated_function.__str__()}")
-        print(f"deviation: {result_entity.metrics.standard_deviation}")
+    print(f"\n{result_entity.__str__()}")
 
 
 def print_result(result: ApproximationResult):
@@ -84,9 +79,9 @@ def show_result(result: ApproximationResult):
 
 def run():
     try:
-        table_function = read_table_function()
-        # table_function = TableFunction(pd.DataFrame(data=pd.read_csv("table_1.csv", header=None).values, columns=['x', 'y']))
-        print(table_function.table())
+        # table_function = read_table_function()
+        table_function = TableFunction(pd.DataFrame(data=pd.read_csv("table_linear.csv", header=None).values, columns=['x', 'y']))
+        # print(table_function.table())
         approximation_result = approximate(table_function)
         show_result(approximation_result)
     except Exception as e:

@@ -34,6 +34,16 @@ class VarianceCalculator:
         omega = VarianceCalculator.standard_deviation_from_squared_deviation(s, len(table_function.table()))
         return [s, omega]
 
+    @staticmethod
+    def pearson_correlation_coefficient(table_function: TableFunction) -> float:
+        try:
+            x_values, y_values = table_function.x_values().copy(), table_function.y_values().copy()
+            x_centered, y_centered = x_values - x_values.mean(), y_values - y_values.mean()
+            r = ((x_centered * y_centered).sum())/math.sqrt((x_centered * x_centered).sum() * (y_centered * y_centered).sum())
+            return r
+        except Exception as e:
+            raise Exception(f"Can't calculate pearson correlation coefficient: {e.__str__()}")
+
 
 class Approximator:
     name: str = None
@@ -213,14 +223,44 @@ class ApproximationResultEntity:
         self.approximated_function = app_f
         self.metrics = met
 
+    def __str__(self):
+        if self.approximator is None or self.approximated_function is None or \
+                self.metrics is None or self.metrics.standard_deviation is None or \
+                self.metrics.squared_deviation is None:
+            return "<none entity>"
+        return f"{self.approximator.name}:\n" \
+               f"{self.approximated_function}\n" \
+               f"S: {self.metrics.squared_deviation}\n" \
+               f"deviation: {self.metrics.standard_deviation}"
+
+
+class LinearApproximationResultEntity(ApproximationResultEntity):
+    pearson_correlation_coefficient: float
+
+    def __init__(self, app, app_f, met, pearson):
+        super().__init__(app, app_f, met)
+        self.pearson_correlation_coefficient = pearson
+
+    def __str__(self):
+        super_str = super().__str__()
+        if super_str == "<none entity>":
+            return super_str
+        return f"{super_str}\n" \
+               f"r: {self.pearson_correlation_coefficient}"
+
 
 class ApproximationResultEntityError(ApproximationResultEntity):
     error: Exception
 
     def __init__(self, app, err):
         super().__init__(app, None, None)
-        self.approximator = app
         self.error = err
+
+    def __str__(self):
+        if self.approximator is None or self.error is None:
+            return "<none error entity>"
+        return f"{self.approximator.name}:\n" \
+               f"error: {self.error.__str__()}"
 
 
 class ApproximationResult:
@@ -238,7 +278,13 @@ def approximate(table_function: TableFunction) -> ApproximationResult:
         try:
             approximated_function = approximator.approximate(table_function)
             metrics = ApproximationMetrics.from_approximated(table_function, approximated_function)
-            approximation_results.append(ApproximationResultEntity(approximator, approximated_function, metrics))
+            if isinstance(approximator, LinearApproximator):
+                pearson_correlation_coefficient = VarianceCalculator.pearson_correlation_coefficient(table_function)
+                approximation_results.append(LinearApproximationResultEntity(
+                    approximator, approximated_function, metrics, pearson_correlation_coefficient
+                ))
+            else:
+                approximation_results.append(ApproximationResultEntity(approximator, approximated_function, metrics))
         except Exception as e:
             approximation_results.append(ApproximationResultEntityError(approximator, e))
     return ApproximationResult(table_function, approximation_results)
