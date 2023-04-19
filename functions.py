@@ -27,6 +27,7 @@ class TableFunction:
         assert len(columns) == 2 and columns[0] == 'x' and columns[1] == 'y', "Must contains only (x,y) cols"
         assert all(t.notnull()), "Must contains only non null values"
         assert types.is_numeric_dtype(t['x']) and types.is_numeric_dtype(t['y']), "Must have numeric values"
+        assert len(t['x']) == len(t['x'].drop_duplicates()), "All x values must be unique"
         self._table = t
 
     def table(self) -> pd.DataFrame:
