@@ -265,10 +265,12 @@ class ApproximationResultEntityError(ApproximationResultEntity):
 
 class ApproximationResult:
     source_function: TableFunction
+    best_approximation: ApproximationResultEntity
     approximations: list[ApproximationResultEntity]
 
-    def __init__(self, src, app):
+    def __init__(self, src, best, app):
         self.source_function = src
+        self.best_approximation = best
         self.approximations = app
 
 
@@ -287,4 +289,12 @@ def approximate(table_function: TableFunction) -> ApproximationResult:
                 approximation_results.append(ApproximationResultEntity(approximator, approximated_function, metrics))
         except Exception as e:
             approximation_results.append(ApproximationResultEntityError(approximator, e))
-    return ApproximationResult(table_function, approximation_results)
+
+    best_approximation, min_score = None, -1
+    for approximation_result in approximation_results:
+        if approximation_result.metrics is not None and approximation_result.metrics.standard_deviation is not None:
+            if approximation_result.metrics.standard_deviation < min_score or min_score == -1:
+                best_approximation = approximation_result
+                min_score = approximation_result.metrics.standard_deviation
+
+    return ApproximationResult(table_function, best_approximation, approximation_results)
