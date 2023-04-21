@@ -77,18 +77,26 @@ def print_best_approximation(result: ApproximationResult):
 
 
 def show_approximation_plot(table_function: TableFunction, approximation_result: ApproximationResultEntity,
-                            number_of_points=10000):
+                            best_approximation_result: ApproximationResultEntity = None, number_of_points=10_000):
     if approximation_result.approximated_function is not None:
         warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
 
         plt.scatter(table_function.x_values(), table_function.y_values(), c='red', label='source points')
 
         x_func = np.linspace(table_function.x_values().min(), table_function.x_values().max(), number_of_points)
+
+        if best_approximation_result is not None:
+            y_func_best = []
+            for x_val in x_func:
+                y_func_best.append(best_approximation_result.approximated_function.at(x_val))
+            plt.plot(x_func, y_func_best, c='lightblue', label=best_approximation_result.approximator.name)
+
         y_func = []
         for x_val in x_func:
             y_func.append(approximation_result.approximated_function.at(x_val))
         plt.plot(x_func, y_func, c='blue', label=approximation_result.approximator.name)
 
+        plt.grid()
         plt.legend()
         plt.show()
 
@@ -107,6 +115,7 @@ def print_result(result: ApproximationResult):
     print("\nAll approximations:")
     for result_entity in result.approximations:
         print_result_entity(result_entity)
+        # show_approximation_plot(result.source_function, result_entity, best_approximation_result=result.best_approximation)
 
 
 def show_result(result: ApproximationResult):
