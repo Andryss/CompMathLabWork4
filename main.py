@@ -64,6 +64,18 @@ def read_table_function() -> TableFunction:
         raise Exception("No such option :(")
 
 
+def read_bool(text: str) -> bool:
+    line = input(f"{text} [Y/y for YES, NO otherwise]: ").strip().lower()
+    if line == 'y':
+        return True
+    else:
+        return False
+
+
+def read_show_all() -> bool:
+    return read_bool("\nDo you want to see all the plots?")
+
+
 def print_source_function(result: ApproximationResult):
     print(f"\nSource function is: \n{result.source_function.table().T}")
 
@@ -105,7 +117,7 @@ def print_result_entity(result_entity: ApproximationResultEntity):
     print(f"\n{result_entity.__str__()}")
 
 
-def print_result(result: ApproximationResult):
+def print_result(result: ApproximationResult, verbose: bool = False):
     # pd.set_option('display.expand_frame_repr', False)
 
     print("\nHere is approximation result:")
@@ -115,20 +127,21 @@ def print_result(result: ApproximationResult):
     print("\nAll approximations:")
     for result_entity in result.approximations:
         print_result_entity(result_entity)
-        # show_approximation_plot(result.source_function, result_entity, best_approximation_result=result.best_approximation)
+
+        if verbose:
+            show_approximation_plot(result.source_function, result_entity, best_approximation_result=result.best_approximation)
 
 
-def show_result(result: ApproximationResult):
-    print_result(result)
+def show_result(result: ApproximationResult, verbose: bool = False):
+    print_result(result, verbose)
 
 
 def run():
     try:
         table_function = read_table_function()
-        # table_function = TableFunction(pd.DataFrame(data=pd.read_csv("table_task.csv", header=None).values, columns=['x', 'y']))
-        # print(table_function.table())
+        show_all = read_show_all()
         approximation_result = approximate(table_function)
-        show_result(approximation_result)
+        show_result(approximation_result, verbose=show_all)
     except Exception as e:
         print(e, file=sys.stderr)
 
