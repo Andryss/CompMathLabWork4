@@ -118,7 +118,8 @@ def print_result_entity(result_entity: ApproximationResultEntity):
 
 
 def print_result(result: ApproximationResult, verbose: bool = False):
-    # pd.set_option('display.expand_frame_repr', False)
+    if result.source_function.table().shape[0] < 30:
+        pd.set_option('display.expand_frame_repr', False)
 
     print("\nHere is approximation result:")
     print_source_function(result)
