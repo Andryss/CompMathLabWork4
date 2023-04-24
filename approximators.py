@@ -6,7 +6,7 @@ from modified_gauss import *
 
 class VarianceCalculator:
 
-    @staticmethod   # мера отклонения
+    @staticmethod  # мера отклонения
     def squared_deviation(table_function: TableFunction, approximated_function: Function) -> float:
         squared_deviation = 0
         t = table_function.table().values
@@ -14,7 +14,7 @@ class VarianceCalculator:
             squared_deviation += (approximated_function.at(t[i, 0]) - t[i, 1]) ** 2
         return squared_deviation
 
-    @staticmethod   # среднеквадратическое отклонение
+    @staticmethod  # среднеквадратическое отклонение
     def standard_deviation(table_function: TableFunction, approximated_function: Function) -> float:
         s = VarianceCalculator.squared_deviation(table_function, approximated_function)
         return VarianceCalculator.standard_deviation_from_squared_deviation(s, len(table_function.table()))
@@ -39,7 +39,8 @@ class VarianceCalculator:
         try:
             x_values, y_values = table_function.x_values().copy(), table_function.y_values().copy()
             x_centered, y_centered = x_values - x_values.mean(), y_values - y_values.mean()
-            r = ((x_centered * y_centered).sum())/math.sqrt((x_centered * x_centered).sum() * (y_centered * y_centered).sum())
+            r = ((x_centered * y_centered).sum()) / math.sqrt(
+                (x_centered * x_centered).sum() * (y_centered * y_centered).sum())
             return r
         except Exception as e:
             raise Exception(f"Can't calculate pearson correlation coefficient: {e.__str__()}")
@@ -60,7 +61,7 @@ class _PolynomialSystemGenerator:
         x_vals = table_function.x_values().copy()
         x = pd.Series([1] * len(x_vals))
         for bottom_row in range(-n + 1, n):
-            for row in range(max(0, bottom_row), min(n, bottom_row + n)):   # window iteration
+            for row in range(max(0, bottom_row), min(n, bottom_row + n)):  # window iteration
                 system[row].append(x.sum())
             x *= x_vals
         y = table_function.y_values().copy()
@@ -76,6 +77,7 @@ class LinearApproximatorCoefficientResolver:
     def resolve(func: TableFunction) -> [float, float]:
         system = _PolynomialSystemGenerator.generate(func, 2)
         result = calculate_gauss_from_parameters(system)
+        assert result.answer is not None, "Can't solve system to resolve coefficients"
         return result.answer[::-1]
 
 
@@ -94,6 +96,7 @@ class SquareApproximatorCoefficientResolver:
     def resolve(func: TableFunction) -> [float, float]:
         system = _PolynomialSystemGenerator.generate(func, 3)
         result = calculate_gauss_from_parameters(system)
+        assert result.answer is not None, "Can't solve system to resolve coefficients"
         return result.answer[::-1]
 
 
@@ -112,6 +115,7 @@ class CubeApproximatorCoefficientResolver:
     def resolve(func: TableFunction) -> [float, float]:
         system = _PolynomialSystemGenerator.generate(func, 4)
         result = calculate_gauss_from_parameters(system)
+        assert result.answer is not None, "Can't solve system to resolve coefficients"
         return result.answer[::-1]
 
 
@@ -201,15 +205,22 @@ def get_all_approximators() -> list[Approximator]:
 class ApproximationMetrics:
     squared_deviation: float
     standard_deviation: float
+    predictions: pd.DataFrame
 
-    def __init__(self, sq_d, st_d):
+    def __init__(self, sq_d, st_d, pred):
         self.squared_deviation = sq_d
         self.standard_deviation = st_d
+        self.predictions = pred
 
     @staticmethod
     def from_approximated(table_function: TableFunction, approximated_function: Function):
+        predictions = table_function.table()\
+            .assign(phi=lambda col: col['x'].map(lambda val: approximated_function.at(val)))
+        predictions = predictions\
+            .assign(eps=lambda col: col['phi'] - col['y'])
         return ApproximationMetrics(
-            *VarianceCalculator.squared_deviation_and_standard_deviation(table_function, approximated_function)
+            *VarianceCalculator.squared_deviation_and_standard_deviation(table_function, approximated_function),
+            predictions
         )
 
 
@@ -226,12 +237,13 @@ class ApproximationResultEntity:
     def __str__(self):
         if self.approximator is None or self.approximated_function is None or \
                 self.metrics is None or self.metrics.standard_deviation is None or \
-                self.metrics.squared_deviation is None:
+                self.metrics.squared_deviation is None or self.metrics.predictions is None:
             return "<none entity>"
         return f"{self.approximator.name}:\n" \
                f"{self.approximated_function}\n" \
                f"S: {self.metrics.squared_deviation}\n" \
-               f"deviation: {self.metrics.standard_deviation}"
+               f"deviation: {self.metrics.standard_deviation}\n" \
+               f"predictions:\n{self.metrics.predictions.T}"
 
 
 class LinearApproximationResultEntity(ApproximationResultEntity):
